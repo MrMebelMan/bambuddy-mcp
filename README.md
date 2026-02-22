@@ -56,14 +56,33 @@ uv sync
 
 ## Configuration
 
-Add to your project's `.mcp.json`:
+### Using uvx
+
+```json
+{
+  "mcpServers": {
+    "bambuddy": {
+      "command": "uvx",
+      "args": ["bambuddy-mcp"],
+      "env": {
+        "BAMBUDDY_URL": "http://localhost:8000",
+        "BAMBUDDY_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+### Local development
+
+For development or running from source:
 
 ```json
 {
   "mcpServers": {
     "bambuddy": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/bambuddy-mcp", "bambuddy_mcp.py"],
+      "args": ["run", "--directory", "/path/to/bambuddy-mcp", "python", "-m", "bambuddy_mcp"],
       "env": {
         "BAMBUDDY_URL": "http://localhost:8000",
         "BAMBUDDY_API_KEY": "your-api-key"
@@ -84,7 +103,7 @@ On NixOS, use the system Python to avoid dynamic linking issues:
       "command": "nix-shell",
       "args": [
         "-p", "uv",
-        "--run", "UV_PYTHON=/run/current-system/sw/bin/python3 uv --directory /path/to/bambuddy-mcp run bambuddy_mcp.py"
+        "--run", "UV_PYTHON=/run/current-system/sw/bin/python3 uv --directory /path/to/bambuddy-mcp run bambuddy-mcp"
       ],
       "env": {
         "BAMBUDDY_URL": "http://localhost:8000",
