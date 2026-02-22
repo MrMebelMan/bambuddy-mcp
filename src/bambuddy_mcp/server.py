@@ -60,7 +60,9 @@ async def main():
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
             async with httpx.AsyncClient(timeout=30) as client:
-                return await execute_api_call(config, tool_map[name], arguments or {}, client)
+                return await execute_api_call(
+                    config, tool_map[name], arguments or {}, client
+                )
 
     else:
         # Proxy mode (default): expose 3 meta-tools for discovery + execution

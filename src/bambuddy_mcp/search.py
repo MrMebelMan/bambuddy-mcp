@@ -21,8 +21,7 @@ def search_tools(
     matches = [
         t
         for t in candidates
-        if query_lower in t["name"].lower()
-        or query_lower in t["description"].lower()
+        if query_lower in t["name"].lower() or query_lower in t["description"].lower()
     ]
 
     # Fuzzy fallback if no substring matches

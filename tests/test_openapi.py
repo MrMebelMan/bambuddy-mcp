@@ -1,7 +1,5 @@
 """Tests for OpenAPI parsing."""
 
-import pytest
-
 from bambuddy_mcp.openapi import (
     clean_tool_name,
     resolve_ref,

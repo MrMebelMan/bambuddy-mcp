@@ -44,7 +44,9 @@ async def execute_api_call(
 
     # Split remaining args into query params and body params
     query_params = {k: v for k, v in remaining_args.items() if k in query_param_names}
-    body_params = {k: v for k, v in remaining_args.items() if k not in query_param_names}
+    body_params = {
+        k: v for k, v in remaining_args.items() if k not in query_param_names
+    }
 
     if method in ("get", "delete"):
         response = await client.request(
@@ -58,9 +60,7 @@ async def execute_api_call(
                 files[key] = open(value, "rb")
             else:
                 data[key] = (
-                    value
-                    if not isinstance(value, (dict, list))
-                    else json.dumps(value)
+                    value if not isinstance(value, (dict, list)) else json.dumps(value)
                 )
         try:
             response = await client.request(
@@ -92,7 +92,11 @@ async def execute_api_call(
             result = json.dumps(body, indent=2)
         except Exception:
             result = response.text
-        return [TextContent(type="text", text=f"HTTP {response.status_code} Error:\n{result}")]
+        return [
+            TextContent(
+                type="text", text=f"HTTP {response.status_code} Error:\n{result}"
+            )
+        ]
 
     # Handle image responses as ImageContent
     if content_type.startswith("image/"):

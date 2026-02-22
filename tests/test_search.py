@@ -1,7 +1,5 @@
 """Tests for tool search functionality."""
 
-import pytest
-
 from bambuddy_mcp.search import search_tools
 
 
