@@ -1,0 +1,14 @@
+[project]
+name = "bambuddy-mcp"
+version = "0.1.0"
+description = "MCP server for the Bambuddy 3D print management API"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+bambuddy-mcp = "bambuddy_mcp:main"
