@@ -8,12 +8,12 @@ Bambuddy MCP Server — a Python MCP server that dynamically exposes the Bambudd
 
 ```
 src/bambuddy_mcp/
-├── __init__.py      # Package entry point, exports main()
+├── __init__.py      # Package entry point, exports main() and run()
 ├── config.py        # Configuration dataclass (env vars)
 ├── openapi.py       # OpenAPI → MCP tool conversion
 ├── search.py        # Tool search with fuzzy matching
 ├── http.py          # HTTP execution logic
-└── server.py        # MCP server setup, main()
+└── server.py        # MCP server setup, main() and run() entry points
 
 tests/
 ├── conftest.py      # Shared fixtures
@@ -53,7 +53,7 @@ The server uses the low-level MCP `Server` class (not `FastMCP`) so it can regis
   - `resolve_schema()` — Recursively resolves `$ref` pointers (depth-limited)
 - **search.py** — `search_tools()` with substring + fuzzy matching
 - **http.py** — `execute_api_call()` for HTTP execution, `fetch_openapi_spec()` for spec loading
-- **server.py** — MCP server setup with direct/proxy mode handlers
+- **server.py** — MCP server setup with direct/proxy mode handlers; `main()` is async entry point, `run()` is sync wrapper for console script
 
 ### HTTP Execution
 
@@ -71,8 +71,10 @@ The server uses the low-level MCP `Server` class (not `FastMCP`) so it can regis
 - **Proxy mode** (default) — Exposes 3 meta-tools (`list_categories`, `search_tools`, `execute_tool`) that let the AI discover and call tools on demand, keeping context usage minimal.
 - **Direct mode** (`BAMBUDDY_DIRECT_MODE=true`) — Exposes all 430+ tools directly. Uses more context but avoids the indirection layer.
 
-## Dependencies
+## Build & Dependencies
+
+Built with `hatchling`. Console script entry point: `bambuddy-mcp`
 
 - `mcp` — Official MCP Python SDK
 - `httpx` — Async HTTP client
-- `pytest`, `pytest-asyncio`, `respx` — Testing (dev)
+- `pytest`, `pytest-asyncio`, `respx`, `ruff` — Testing & linting (dev)
