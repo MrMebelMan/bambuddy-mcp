@@ -44,9 +44,10 @@ The server uses the low-level MCP `Server` class (not `FastMCP`) so it can regis
 - Image responses (`image/*`) are returned as `ImageContent` with base64 data
 - Other binary responses (video, audio, octet-stream) are returned as base64-encoded text
 
-## Important
+## Modes
 
-This server exposes 430+ tools which can consume a large amount of context.
+- **Proxy mode** (default) — Exposes 3 meta-tools (`list_categories`, `search_tools`, `execute_tool`) that let the AI discover and call tools on demand, keeping context usage minimal.
+- **Direct mode** (`BAMBUDDY_DIRECT_MODE=true`) — Exposes all 430+ tools directly. Uses more context but avoids the indirection layer.
 
 ## Dependencies
 
