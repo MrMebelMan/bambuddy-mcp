@@ -133,11 +133,29 @@ async def main():
             embed_image = args.pop("embed_image", False)
             async with httpx.AsyncClient(timeout=30) as client:
                 return await execute_api_call(
-                    config, tool_map[name], args, client, embed_image=embed_image
+                    config,
+                    tool_map[name],
+                    args,
+                    client,
+                    embed_image=embed_image,
                 )
 
     else:
         # Proxy mode (default): expose 4 meta-tools for discovery + execution
+        censored = []
+        if config.censor_access_code:
+            censored.append("access_code")
+        if config.censor_serial:
+            censored.append("serial_number")
+        if config.censor_model_filename:
+            censored.append("model filenames (.3mf/.gcode)")
+        if censored:
+            censor_note = (
+                f" The Bambuddy MCP server is censoring: {', '.join(censored)}. "
+                "Users can disable this in their MCP server config via BAMBUDDY_CENSOR_* env vars."
+            )
+        else:
+            censor_note = ""
 
         @server.list_tools()
         async def list_tools_proxy() -> list[Tool]:
@@ -172,7 +190,7 @@ async def main():
                 ),
                 Tool(
                     name="execute_tool",
-                    description="Execute a Bambuddy API tool by name. Use search_tools first to find the tool name and its required arguments. Images are saved to disk by default — use xdg-open to show them to the user. Only set embed_image=true if you need to analyze the image content yourself.",
+                    description=f"Execute a Bambuddy API tool by name. Use search_tools first to find the tool name and its required arguments. Images are saved to disk by default — use xdg-open to show them to the user. Only set embed_image=true if you need to analyze the image content yourself.{censor_note}",
                     inputSchema={
                         "type": "object",
                         "properties": {

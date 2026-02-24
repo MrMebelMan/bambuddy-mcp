@@ -66,7 +66,10 @@ uv sync
       "args": ["bambuddy-mcp"],
       "env": {
         "BAMBUDDY_URL": "http://localhost:8000",
-        "BAMBUDDY_API_KEY": "your-api-key"
+        "BAMBUDDY_API_KEY": "your-api-key",
+        "BAMBUDDY_CENSOR_ACCESS_CODE": "true",
+        "BAMBUDDY_CENSOR_SERIAL": "true",
+        "BAMBUDDY_CENSOR_MODEL_FILENAME": "false"
       }
     }
   }
@@ -85,7 +88,10 @@ For development or running from source:
       "args": ["run", "--directory", "/path/to/bambuddy-mcp", "python", "-m", "bambuddy_mcp"],
       "env": {
         "BAMBUDDY_URL": "http://localhost:8000",
-        "BAMBUDDY_API_KEY": "your-api-key"
+        "BAMBUDDY_API_KEY": "your-api-key",
+        "BAMBUDDY_CENSOR_ACCESS_CODE": "true",
+        "BAMBUDDY_CENSOR_SERIAL": "true",
+        "BAMBUDDY_CENSOR_MODEL_FILENAME": "false"
       }
     }
   }
@@ -120,8 +126,11 @@ On NixOS, use the system Python to avoid dynamic linking issues:
 |----------|---------|-------------|
 | `BAMBUDDY_URL` | `http://localhost:8000` | Base URL of your Bambuddy instance |
 | `BAMBUDDY_API_KEY` | _(empty)_ | API key for authentication (create in Bambuddy Settings) |
-| `BAMBUDDY_DIRECT_MODE` | `false` | Set to `true` to expose all 430+ tools directly instead of the 3 meta-tools |
+| `BAMBUDDY_DIRECT_MODE` | `false` | Set to `true` to expose all 430+ tools directly instead of the meta-tools |
+| `BAMBUDDY_CENSOR_ACCESS_CODE` | `true` | Mask `access_code` fields in API responses |
+| `BAMBUDDY_CENSOR_SERIAL` | `true` | Mask `serial_number` fields (keeps first 2 + last 2 chars) |
+| `BAMBUDDY_CENSOR_MODEL_FILENAME` | `false` | Mask model filenames (`.3mf`, `.gcode`) in API responses and prevent direct base64 image embedding |
 
-> **Note:** By default, the server exposes 3 meta-tools (`list_categories`, `search_tools`, `execute_tool`) that let AI assistants discover and call API endpoints on demand. Set `BAMBUDDY_DIRECT_MODE=true` to expose all 430+ tools directly (uses significantly more context).
+> **Note:** By default, the server exposes meta-tools (`list_categories`, `search_tools`, `execute_tool`, `find_printer`) that let AI assistants discover and call API endpoints on demand. Set `BAMBUDDY_DIRECT_MODE=true` to expose all 430+ tools directly (uses significantly more context).
 
 

@@ -10,12 +10,18 @@ def test_config_from_env_defaults(monkeypatch):
     monkeypatch.delenv("BAMBUDDY_URL", raising=False)
     monkeypatch.delenv("BAMBUDDY_API_KEY", raising=False)
     monkeypatch.delenv("BAMBUDDY_DIRECT_MODE", raising=False)
+    monkeypatch.delenv("BAMBUDDY_CENSOR_ACCESS_CODE", raising=False)
+    monkeypatch.delenv("BAMBUDDY_CENSOR_SERIAL", raising=False)
+    monkeypatch.delenv("BAMBUDDY_CENSOR_MODEL_FILENAME", raising=False)
 
     config = Config.from_env()
 
     assert config.base_url == "http://localhost:8000"
     assert config.api_key == ""
     assert config.direct_mode is False
+    assert config.censor_access_code is True
+    assert config.censor_serial is True
+    assert config.censor_model_filename is False
 
 
 def test_config_from_env_custom(monkeypatch):
@@ -23,12 +29,18 @@ def test_config_from_env_custom(monkeypatch):
     monkeypatch.setenv("BAMBUDDY_URL", "http://custom:9000")
     monkeypatch.setenv("BAMBUDDY_API_KEY", "secret")
     monkeypatch.setenv("BAMBUDDY_DIRECT_MODE", "true")
+    monkeypatch.setenv("BAMBUDDY_CENSOR_ACCESS_CODE", "false")
+    monkeypatch.setenv("BAMBUDDY_CENSOR_SERIAL", "false")
+    monkeypatch.setenv("BAMBUDDY_CENSOR_MODEL_FILENAME", "true")
 
     config = Config.from_env()
 
     assert config.base_url == "http://custom:9000"
     assert config.api_key == "secret"
     assert config.direct_mode is True
+    assert config.censor_access_code is False
+    assert config.censor_serial is False
+    assert config.censor_model_filename is True
 
 
 @pytest.mark.parametrize(

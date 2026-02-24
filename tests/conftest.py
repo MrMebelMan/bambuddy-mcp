@@ -12,6 +12,9 @@ def config():
         base_url="http://test.local:8000",
         api_key="test-key",
         direct_mode=False,
+        censor_access_code=True,
+        censor_serial=True,
+        censor_model_filename=False,
     )
 
 

@@ -28,6 +28,47 @@ def build_url(base_url: str, path_template: str, arguments: dict) -> tuple[str, 
     return url, remaining
 
 
+_MODEL_FILE_RE = re.compile(r"^(.+?)((?:\.gcode)?\.3mf|\.gcode)$", re.IGNORECASE)
+
+
+def _mask_partial(value: str) -> str:
+    """Mask a string keeping first 2 + last 2 chars."""
+    if len(value) <= 4:
+        return "*" * len(value)
+    return value[:2] + "*" * (len(value) - 4) + value[-2:]
+
+
+def _mask_model_filename(value: str) -> str:
+    """Mask the name portion of a 3mf/gcode filename."""
+    m = _MODEL_FILE_RE.match(value)
+    if not m:
+        return value
+    return _mask_partial(m.group(1)) + m.group(2)
+
+
+def censor_response(data, config: Config):
+    """Recursively censor sensitive fields in API response data."""
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k == "access_code" and config.censor_access_code and isinstance(v, str):
+                result[k] = "********"
+            elif k == "serial_number" and config.censor_serial and isinstance(v, str):
+                result[k] = _mask_partial(v)
+            else:
+                result[k] = censor_response(v, config)
+        return result
+    if isinstance(data, list):
+        return [censor_response(item, config) for item in data]
+    if (
+        isinstance(data, str)
+        and config.censor_model_filename
+        and _MODEL_FILE_RE.match(data)
+    ):
+        return _mask_model_filename(data)
+    return data
+
+
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -102,6 +143,7 @@ async def execute_api_call(
     if response.status_code >= 400:
         try:
             body = response.json()
+            body = censor_response(body, config)
             result = json.dumps(body, indent=2)
         except Exception:
             result = response.text
@@ -114,7 +156,7 @@ async def execute_api_call(
     # Handle image responses
     if content_type.startswith("image/"):
         mime_type = content_type.split(";")[0].strip()
-        if embed_image:
+        if embed_image and not config.censor_model_filename:
             b64_data = base64.b64encode(response.content).decode("ascii")
             return [ImageContent(type="image", data=b64_data, mimeType=mime_type)]
         ext = MIME_TO_EXT.get(mime_type, ".bin")
@@ -124,12 +166,15 @@ async def execute_api_call(
         with open(path, "wb") as f:
             f.write(response.content)
         size_kb = len(response.content) / 1024
-        return [
-            TextContent(
-                type="text",
-                text=f"Image saved to {path} ({size_kb:.0f}KB, {mime_type})",
+        msg = f"Image saved to {path} ({size_kb:.0f}KB, {mime_type})"
+        if embed_image and config.censor_model_filename:
+            msg += (
+                "\nNote: Image embedding was blocked by the Bambuddy MCP server "
+                "because model filename censoring is enabled "
+                "(BAMBUDDY_CENSOR_MODEL_FILENAME=true in MCP server config). "
+                "Use xdg-open to show the saved file to the user."
             )
-        ]
+        return [TextContent(type="text", text=msg)]
 
     # Handle other binary responses
     if content_type.startswith(("application/octet-stream", "video/", "audio/")):
@@ -144,6 +189,7 @@ async def execute_api_call(
     # Handle JSON/text responses
     try:
         body = response.json()
+        body = censor_response(body, config)
         result = json.dumps(body, indent=2)
     except Exception:
         result = response.text
