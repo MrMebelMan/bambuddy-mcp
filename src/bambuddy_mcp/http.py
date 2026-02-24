@@ -4,6 +4,8 @@ import base64
 import json
 import os
 import re
+import tempfile
+import time
 from urllib.parse import urljoin
 
 import httpx
@@ -26,11 +28,22 @@ def build_url(base_url: str, path_template: str, arguments: dict) -> tuple[str, 
     return url, remaining
 
 
+MIME_TO_EXT = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "image/bmp": ".bmp",
+    "image/tiff": ".tiff",
+}
+
+
 async def execute_api_call(
     config: Config,
     tool_def: dict,
     arguments: dict,
     client: httpx.AsyncClient,
+    embed_image: bool = False,
 ) -> list[TextContent | ImageContent]:
     """Execute an API call and return the response as MCP content."""
     url, remaining_args = build_url(config.base_url, tool_def["path"], arguments)
@@ -98,11 +111,25 @@ async def execute_api_call(
             )
         ]
 
-    # Handle image responses as ImageContent
+    # Handle image responses
     if content_type.startswith("image/"):
         mime_type = content_type.split(";")[0].strip()
-        b64_data = base64.b64encode(response.content).decode("ascii")
-        return [ImageContent(type="image", data=b64_data, mimeType=mime_type)]
+        if embed_image:
+            b64_data = base64.b64encode(response.content).decode("ascii")
+            return [ImageContent(type="image", data=b64_data, mimeType=mime_type)]
+        ext = MIME_TO_EXT.get(mime_type, ".bin")
+        name = tool_def.get("name", "image")
+        ts = int(time.time())
+        path = os.path.join(tempfile.gettempdir(), f"bambuddy_{name}_{ts}{ext}")
+        with open(path, "wb") as f:
+            f.write(response.content)
+        size_kb = len(response.content) / 1024
+        return [
+            TextContent(
+                type="text",
+                text=f"Image saved to {path} ({size_kb:.0f}KB, {mime_type})",
+            )
+        ]
 
     # Handle other binary responses
     if content_type.startswith(("application/octet-stream", "video/", "audio/")):

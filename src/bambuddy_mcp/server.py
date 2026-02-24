@@ -129,13 +129,15 @@ async def main():
             if name not in tool_map:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
+            args = dict(arguments or {})
+            embed_image = args.pop("embed_image", False)
             async with httpx.AsyncClient(timeout=30) as client:
                 return await execute_api_call(
-                    config, tool_map[name], arguments or {}, client
+                    config, tool_map[name], args, client, embed_image=embed_image
                 )
 
     else:
-        # Proxy mode (default): expose 3 meta-tools for discovery + execution
+        # Proxy mode (default): expose 4 meta-tools for discovery + execution
 
         @server.list_tools()
         async def list_tools_proxy() -> list[Tool]:
@@ -170,7 +172,7 @@ async def main():
                 ),
                 Tool(
                     name="execute_tool",
-                    description="Execute a Bambuddy API tool by name. Use search_tools first to find the tool name and its required arguments.",
+                    description="Execute a Bambuddy API tool by name. Use search_tools first to find the tool name and its required arguments. Images are saved to disk by default — use xdg-open to show them to the user. Only set embed_image=true if you need to analyze the image content yourself.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -182,6 +184,11 @@ async def main():
                                 "type": "object",
                                 "description": "Arguments to pass to the tool (see input_schema from search_tools)",
                                 "default": {},
+                            },
+                            "embed_image": {
+                                "type": "boolean",
+                                "description": "Set to true to embed image data in the response instead of saving to a file (default: false)",
+                                "default": False,
                             },
                         },
                         "required": ["name"],
@@ -237,6 +244,7 @@ async def main():
             if name == "execute_tool":
                 tool_name = arguments.get("name", "")
                 tool_args = arguments.get("arguments", {})
+                embed_image = arguments.get("embed_image", False)
                 if tool_name not in tool_map:
                     return [
                         TextContent(
@@ -246,7 +254,11 @@ async def main():
                     ]
                 async with httpx.AsyncClient(timeout=30) as client:
                     return await execute_api_call(
-                        config, tool_map[tool_name], tool_args, client
+                        config,
+                        tool_map[tool_name],
+                        tool_args,
+                        client,
+                        embed_image=embed_image,
                     )
 
             if name == "find_printer":

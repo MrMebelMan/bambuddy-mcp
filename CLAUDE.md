@@ -30,8 +30,9 @@ tests/
 uv sync
 # On NixOS: nix-shell -p uv --run "uv sync"
 
-# Lint (run after editing Python files)
+# Lint & format (run after editing Python files)
 uv run ruff check src/ tests/
+uv run ruff format --check src/ tests/
 
 # Run tests
 uv run pytest -v

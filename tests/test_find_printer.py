@@ -58,7 +58,9 @@ def sample_printers():
 class TestFindPrinters:
     @pytest.mark.asyncio
     @respx.mock
-    async def test_exact_name_match(self, config, tool_map_with_printers, sample_printers):
+    async def test_exact_name_match(
+        self, config, tool_map_with_printers, sample_printers
+    ):
         respx.get("http://test.local:8000/api/v1/printers/").mock(
             return_value=Response(200, json=sample_printers)
         )
@@ -70,7 +72,9 @@ class TestFindPrinters:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_case_insensitive(self, config, tool_map_with_printers, sample_printers):
+    async def test_case_insensitive(
+        self, config, tool_map_with_printers, sample_printers
+    ):
         respx.get("http://test.local:8000/api/v1/printers/").mock(
             return_value=Response(200, json=sample_printers)
         )
@@ -81,7 +85,9 @@ class TestFindPrinters:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_substring_match(self, config, tool_map_with_printers, sample_printers):
+    async def test_substring_match(
+        self, config, tool_map_with_printers, sample_printers
+    ):
         respx.get("http://test.local:8000/api/v1/printers/").mock(
             return_value=Response(200, json=sample_printers)
         )

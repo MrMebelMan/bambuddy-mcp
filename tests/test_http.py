@@ -1,5 +1,7 @@
 """Tests for HTTP execution."""
 
+import os
+
 import pytest
 import respx
 from httpx import Response
@@ -66,7 +68,7 @@ class TestExecuteApiCall:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_image_response(self, config, tool_def):
+    async def test_image_response_saves_to_file(self, config, tool_def):
         respx.get("http://test.local/items/123").mock(
             return_value=Response(
                 200,
@@ -79,6 +81,32 @@ class TestExecuteApiCall:
 
         async with httpx.AsyncClient() as client:
             result = await execute_api_call(config, tool_def, {"id": "123"}, client)
+
+        assert len(result) == 1
+        assert result[0].type == "text"
+        assert "Image saved to" in result[0].text
+        assert ".png" in result[0].text
+        # Clean up
+        path = result[0].text.split("Image saved to ")[1].split(" ")[0]
+        os.unlink(path)
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_image_response_embed(self, config, tool_def):
+        respx.get("http://test.local/items/123").mock(
+            return_value=Response(
+                200,
+                content=b"\x89PNG\r\n",
+                headers={"content-type": "image/png"},
+            )
+        )
+
+        import httpx
+
+        async with httpx.AsyncClient() as client:
+            result = await execute_api_call(
+                config, tool_def, {"id": "123"}, client, embed_image=True
+            )
 
         assert len(result) == 1
         assert result[0].type == "image"
