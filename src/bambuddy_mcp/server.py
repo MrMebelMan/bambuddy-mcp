@@ -10,9 +10,79 @@ from mcp.server.stdio import stdio_server
 from mcp.types import ImageContent, TextContent, Tool
 
 from bambuddy_mcp.config import Config
-from bambuddy_mcp.http import execute_api_call, fetch_openapi_spec
+from bambuddy_mcp.http import build_url, execute_api_call, fetch_openapi_spec
 from bambuddy_mcp.openapi import parse_openapi_to_tools
 from bambuddy_mcp.search import search_tools
+
+PRINTER_FIELDS = ("id", "name", "model", "ip_address", "is_active")
+
+
+async def _find_printers(
+    name_query: str,
+    config: Config,
+    tool_map: dict,
+) -> list[TextContent]:
+    """Look up printers by name using the list_printers endpoint."""
+    list_tool = tool_map.get("list_printers")
+    if list_tool is None:
+        return [
+            TextContent(
+                type="text",
+                text=(
+                    "The find_printer tool requires a 'list_printers' endpoint "
+                    "in the Bambuddy API, but none was found. "
+                    "Use search_tools to look for printer-related tools manually."
+                ),
+            )
+        ]
+
+    url, _ = build_url(config.base_url, list_tool["path"], {})
+    headers: dict[str, str] = {}
+    if config.api_key:
+        headers["X-API-Key"] = config.api_key
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(url, headers=headers)
+
+    if response.status_code >= 400:
+        return [
+            TextContent(
+                type="text",
+                text=f"HTTP {response.status_code} Error fetching printers: {response.text}",
+            )
+        ]
+
+    printers = response.json()
+
+    # Handle paginated responses wrapped in an envelope
+    if isinstance(printers, dict):
+        for key in ("data", "items", "results", "printers"):
+            if key in printers and isinstance(printers[key], list):
+                printers = printers[key]
+                break
+
+    if not isinstance(printers, list):
+        printers = [printers]
+
+    # Filter by name (case-insensitive substring match)
+    query_lower = name_query.lower()
+    matches = [
+        p
+        for p in printers
+        if isinstance(p, dict) and query_lower in p.get("name", "").lower()
+    ]
+
+    # Project to essential fields only
+    results = [
+        {field: p[field] for field in PRINTER_FIELDS if field in p} for p in matches
+    ]
+
+    output = {
+        "query": name_query,
+        "total_matches": len(results),
+        "printers": results,
+    }
+    return [TextContent(type="text", text=json.dumps(output, indent=2))]
 
 
 async def main():
@@ -117,6 +187,24 @@ async def main():
                         "required": ["name"],
                     },
                 ),
+                Tool(
+                    name="find_printer",
+                    description=(
+                        "Find a printer by name. Returns printer details including "
+                        "the printer_id needed by other tools. Use this when you "
+                        "know a printer's name but need its ID."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Printer name or partial name to search for (case-insensitive)",
+                            },
+                        },
+                        "required": ["name"],
+                    },
+                ),
             ]
 
         @server.call_tool()
@@ -160,6 +248,17 @@ async def main():
                     return await execute_api_call(
                         config, tool_map[tool_name], tool_args, client
                     )
+
+            if name == "find_printer":
+                printer_name = arguments.get("name", "")
+                if not printer_name:
+                    return [
+                        TextContent(
+                            type="text",
+                            text="The 'name' parameter is required for find_printer.",
+                        )
+                    ]
+                return await _find_printers(printer_name, config, tool_map)
 
             return [TextContent(type="text", text=f"Unknown meta-tool: {name}")]
 

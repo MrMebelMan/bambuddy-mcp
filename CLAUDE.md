@@ -26,17 +26,21 @@ tests/
 ## Development
 
 ```bash
-# Install dependencies (on NixOS)
-nix-shell -p uv --run "uv sync"
+# Install dependencies
+uv sync
+# On NixOS: nix-shell -p uv --run "uv sync"
+
+# Lint (run after editing Python files)
+uv run ruff check src/ tests/
 
 # Run tests
-nix-shell -p uv --run "uv run pytest -v"
+uv run pytest -v
 
 # Run the server (needs a running Bambuddy instance)
-nix-shell -p uv --run "BAMBUDDY_URL=http://localhost:8000 uv run python -m bambuddy_mcp"
+BAMBUDDY_URL=http://localhost:8000 uv run python -m bambuddy_mcp
 
 # Test initialization via stdio
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | nix-shell -p uv --run "uv run python -m bambuddy_mcp"
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | uv run python -m bambuddy_mcp
 ```
 
 ## Architecture
@@ -68,7 +72,7 @@ The server uses the low-level MCP `Server` class (not `FastMCP`) so it can regis
 
 ## Modes
 
-- **Proxy mode** (default) — Exposes 3 meta-tools (`list_categories`, `search_tools`, `execute_tool`) that let the AI discover and call tools on demand, keeping context usage minimal.
+- **Proxy mode** (default) — Exposes 4 meta-tools (`list_categories`, `search_tools`, `execute_tool`, `find_printer`) that let the AI discover and call tools on demand, keeping context usage minimal.
 - **Direct mode** (`BAMBUDDY_DIRECT_MODE=true`) — Exposes all 430+ tools directly. Uses more context but avoids the indirection layer.
 
 ## Build & Dependencies
