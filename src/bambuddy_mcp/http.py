@@ -1,11 +1,13 @@
 """HTTP execution logic for API calls."""
 
+import asyncio
 import base64
 import json
 import os
 import re
 import tempfile
 import time
+from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
@@ -111,23 +113,20 @@ async def execute_api_call(
         data = {}
         for key, value in body_params.items():
             if isinstance(value, str) and os.path.isfile(value):
-                files[key] = open(value, "rb")
+                content = await asyncio.to_thread(Path(value).read_bytes)
+                files[key] = (os.path.basename(value), content)
             else:
                 data[key] = (
                     value if not isinstance(value, (dict, list)) else json.dumps(value)
                 )
-        try:
-            response = await client.request(
-                method.upper(),
-                url,
-                files=files,
-                data=data,
-                params=query_params,
-                headers=headers,
-            )
-        finally:
-            for f in files.values():
-                f.close()
+        response = await client.request(
+            method.upper(),
+            url,
+            files=files,
+            data=data,
+            params=query_params,
+            headers=headers,
+        )
     else:
         response = await client.request(
             method.upper(),
@@ -145,7 +144,7 @@ async def execute_api_call(
             body = response.json()
             body = censor_response(body, config)
             result = json.dumps(body, indent=2)
-        except Exception:
+        except ValueError:
             result = response.text
         return [
             TextContent(
@@ -158,13 +157,12 @@ async def execute_api_call(
         mime_type = content_type.split(";")[0].strip()
         if embed_image and not config.censor_model_filename:
             b64_data = base64.b64encode(response.content).decode("ascii")
-            return [ImageContent(type="image", data=b64_data, mimeType=mime_type)]
+            return [ImageContent(type="image", data=b64_data, mime_type=mime_type)]
         ext = MIME_TO_EXT.get(mime_type, ".bin")
         name = tool_def.get("name", "image")
         ts = int(time.time())
         path = os.path.join(tempfile.gettempdir(), f"bambuddy_{name}_{ts}{ext}")
-        with open(path, "wb") as f:
-            f.write(response.content)
+        await asyncio.to_thread(Path(path).write_bytes, response.content)
         size_kb = len(response.content) / 1024
         msg = f"Image saved to {path} ({size_kb:.0f}KB, {mime_type})"
         if embed_image and config.censor_model_filename:
@@ -191,7 +189,7 @@ async def execute_api_call(
         body = response.json()
         body = censor_response(body, config)
         result = json.dumps(body, indent=2)
-    except Exception:
+    except ValueError:
         result = response.text
 
     return [TextContent(type="text", text=result)]

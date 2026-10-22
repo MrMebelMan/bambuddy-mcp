@@ -1,11 +1,11 @@
 """Tests for OpenAPI parsing."""
 
 from bambuddy_mcp.openapi import (
+    build_input_schema,
     clean_tool_name,
+    parse_openapi_to_tools,
     resolve_ref,
     resolve_schema,
-    build_input_schema,
-    parse_openapi_to_tools,
 )
 
 
@@ -100,7 +100,7 @@ class TestBuildInputSchema:
 
     def test_query_params_tracked(self, sample_openapi_spec):
         operation = sample_openapi_spec["paths"]["/api/v1/items/{item_id}"]["get"]
-        schema, query_params = build_input_schema(
+        _, query_params = build_input_schema(
             "/api/v1/items/{item_id}", "get", operation, sample_openapi_spec
         )
 
@@ -126,7 +126,7 @@ class TestBuildInputSchema:
                 }
             },
         }
-        schema, query_params = build_input_schema("/items", "post", operation, spec)
+        schema, _ = build_input_schema("/items", "post", operation, spec)
 
         assert "name" in schema["properties"]
         assert "count" in schema["properties"]
