@@ -20,7 +20,8 @@ tests/
 ├── test_config.py   # Config tests
 ├── test_openapi.py  # OpenAPI parsing tests
 ├── test_search.py   # Search tests
-└── test_http.py     # HTTP execution tests (respx mocked)
+├── test_http.py     # HTTP execution tests (respx mocked)
+└── test_server.py   # Server wiring tests (in-process mcp Client)
 ```
 
 ## Development
@@ -33,6 +34,7 @@ uv sync
 # Lint & format (run after editing Python files)
 uv run ruff check src/ tests/
 uv run ruff format --check src/ tests/
+# On NixOS (the ruff wheel won't run): nix-shell -I nixpkgs=channel:nixos-unstable -p ruff --run "ruff check src/ tests/ && ruff format --check src/ tests/"
 
 # Run tests
 uv run pytest -v
@@ -58,7 +60,7 @@ The server uses the low-level MCP `Server` class (not `FastMCP`) so it can regis
   - `resolve_schema()` — Recursively resolves `$ref` pointers (depth-limited)
 - **search.py** — `search_tools()` with substring + fuzzy matching
 - **http.py** — `execute_api_call()` for HTTP execution, `fetch_openapi_spec()` for spec loading
-- **server.py** — MCP server setup with direct/proxy mode handlers; `main()` is async entry point, `run()` is sync wrapper for console script
+- **server.py** — `build_server()` creates the lowlevel `Server` (mcp 2.x) with `on_list_tools`/`on_call_tool` handlers for direct/proxy mode; `main()` fetches the spec and runs it over stdio, `run()` is sync wrapper for console script
 
 ### HTTP Execution
 

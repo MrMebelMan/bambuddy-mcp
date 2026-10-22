@@ -122,7 +122,36 @@ class TestExecuteApiCall:
 
         assert len(result) == 1
         assert result[0].type == "image"
-        assert result[0].mimeType == "image/png"
+        assert result[0].mime_type == "image/png"
+
+    @pytest.mark.asyncio
+    @respx.mock
+    async def test_file_upload_multipart(self, config, tmp_path):
+        upload = tmp_path / "part.3mf"
+        upload.write_bytes(b"PK\x03\x04model")
+        route = respx.post("http://test.local/upload").mock(
+            return_value=Response(200, json={"ok": True})
+        )
+        tool_def = {
+            "name": "upload",
+            "path": "/upload",
+            "method": "post",
+            "query_params": set(),
+            "has_file_upload": True,
+        }
+
+        import httpx
+
+        async with httpx.AsyncClient() as client:
+            result = await execute_api_call(
+                config, tool_def, {"file": str(upload), "note": "hi"}, client
+            )
+
+        assert '"ok": true' in result[0].text
+        body = route.calls[0].request.content
+        assert b'name="file"; filename="part.3mf"' in body
+        assert b"PK\x03\x04model" in body
+        assert b'name="note"' in body
 
     @pytest.mark.asyncio
     @respx.mock
